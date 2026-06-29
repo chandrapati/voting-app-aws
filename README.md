@@ -10,7 +10,7 @@ Deploy a **3-tier voting application** on AWS with Terraform in about **5 minute
 | **Deploy time** | ~5 min (Terraform) + ~8–12 min (app bootstrap) |
 | **Teardown time** | ~2–3 min |
 | **Default region** | `us-east-1` |
-| **Estimated cost** | ~$0.04/hr on-demand (~$1/day if left running) |
+| **Estimated cost** | ~$0.05/hr on-demand (~$1.25/day if left running) |
 
 ---
 
@@ -35,6 +35,11 @@ A working **"What's For Lunch?"** voting UI backed by a .NET API and SQL Server 
                       │ voting-db   │  SQL Server 2019 (Docker)
                       │  t3.small   │  192.168.201.0/24 (private)
                       └─────────────┘
+
+  ┌─────────────────┐
+  │ voting-client   │  cron: HTTP+HTTPS → web, HTTP → app (east-west)
+  │  t3.micro       │  192.168.102.0/24 (private)
+  └─────────────────┘
 ```
 
 | Tier | Hostname | Access | Instance |
@@ -42,8 +47,15 @@ A working **"What's For Lunch?"** voting UI backed by a .NET API and SQL Server 
 | Web (UI) | `voting-web01` | Public IP | `t3.micro` |
 | App (API) | `voting-app01` | Public IP | `t3.micro` |
 | DB (SQL) | `voting-db01` | Private IP only | `t3.small` |
+| Client | `voting-client01` | Private IP only | `t3.micro` |
 
 **VPC Flow Logs** (enabled by default) capture all accepted/rejected traffic for the VPC and deliver **hourly partitioned plain-text logs** to an **encrypted, private S3 bucket** with a 30-day lifecycle expiration.
+
+**Traffic generator** (enabled by default, like Siwapp) — a `voting-client01` EC2 in `192.168.102.0/24` runs a cron job **every minute** that:
+- Hits the **web tier** over **HTTP and HTTPS** (`GET /`, `GET/PUT api/Votes`)
+- Hits the **app tier API directly** over HTTP (east-west: client → app → db)
+
+This produces continuous flows for CSW ADM, segmentation policy demos, and VPC flow logs in S3.
 
 Application binaries are pulled at boot from [wajihalsaid/Voting_app](https://github.com/wajihalsaid/Voting_app).
 
@@ -128,6 +140,13 @@ Example: `http://44.201.139.245`
 
 Open that URL in a browser. You should see **"What's For Lunch?"** — add lunch options and vote.
 
+Traffic generation starts automatically within ~5 minutes of the client EC2 boot (after the web tier is healthy). Monitor it:
+
+```bash
+terraform output monitor_traffic_log
+# copy-paste the ssh ... tail -f command
+```
+
 ### Step 6 — Run the smoke test (recommended)
 
 From the repo root:
@@ -198,7 +217,8 @@ Pricing below is **approximate** for **us-east-1 on-demand** (June 2026). Actual
 | `t3.micro` (web) | 1 | $0.0104 | $0.25 | $7.59 |
 | `t3.micro` (app) | 1 | $0.0104 | $0.25 | $7.59 |
 | `t3.small` (db) | 1 | $0.0208 | $0.50 | $15.18 |
-| **EC2 subtotal** | | **~$0.042/hr** | **~$1.00/day** | **~$30/month** |
+| `t3.micro` (client) | 1 | $0.0104 | $0.25 | $7.59 |
+| **EC2 subtotal** | | **~$0.052/hr** | **~$1.25/day** | **~$38/month** |
 
 ### Other charges (usually small)
 
@@ -386,6 +406,44 @@ flow_logs_retention_days = 7
 
 ---
 
+### 11. Traffic generator
+
+The client (`192.168.102.40`) has **no public IP**. SSH via web jump host:
+
+```bash
+terraform output ssh_client_via_web
+```
+
+Monitor probe log:
+
+```bash
+terraform output monitor_traffic_log
+```
+
+Manual test on the client:
+
+```bash
+sudo /usr/local/bin/voting_traffic_probe.sh voting-web01.ec2.internal voting-app01.ec2.internal
+```
+
+Disable the traffic generator:
+
+```hcl
+enable_traffic_generator = false
+```
+
+Typical log lines:
+
+```
+[2026-06-29 12:00:01] [http/web]   PUT api/Votes/Pizza-1719667201 -> 200
+[2026-06-29 12:00:02] [https/web]  GET api/Votes -> 200
+[2026-06-29 12:00:03] [http/app]   PUT api/Votes/Sushi-1719667203 -> 200
+```
+
+If probes show `000` or `502`, the app stack is still bootstrapping — wait 8–12 min after `terraform apply`.
+
+---
+
 ## Security notes for customer demos
 
 - HTTP is open to **your IP** (auto-detected) plus RFC1918 ranges for tier-to-tier traffic.
@@ -411,13 +469,16 @@ voting-app-aws/
     ├── dns.tf
     ├── secrets.tf
     ├── flow_logs.tf              # VPC Flow Logs → S3
+    ├── traffic_client.tf         # Traffic generator EC2
     ├── variables.tf
     ├── outputs.tf
     ├── terraform.tfvars.example
     └── scripts/
-        ├── install-voting-db.sh    # SQL Server Docker
-        ├── install-voting-app.sh # .NET API
-        └── install-voting-web.sh # .NET UI
+        ├── install-voting-db.sh
+        ├── install-voting-app.sh
+        ├── install-voting-web.sh
+        ├── install-voting-client.sh
+        └── voting_client_generate_traffic.sh
 ```
 
 ---

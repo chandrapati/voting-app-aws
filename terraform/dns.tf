@@ -20,3 +20,13 @@ resource "aws_route53_record" "internal_dns" {
   ttl     = 300
   records = [each.value.private_ip]
 }
+
+resource "aws_route53_record" "traffic_client_dns" {
+  count = var.enable_traffic_generator ? 1 : 0
+
+  zone_id = aws_route53_zone.internal_dns.zone_id
+  name    = "voting-client01.ec2.internal"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.traffic_client[0].private_ip]
+}

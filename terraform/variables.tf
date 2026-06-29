@@ -89,3 +89,27 @@ variable "flow_logs_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "enable_traffic_generator" {
+  description = "Deploy a client EC2 that generates HTTP/HTTPS traffic every minute."
+  type        = bool
+  default     = true
+}
+
+variable "client_dev_subnet01_cidr" {
+  description = "Private subnet for the traffic generator client."
+  type        = string
+  default     = "192.168.102.0/24"
+}
+
+variable "client_private_ip" {
+  description = "Fixed private IP for the traffic generator (must be in client subnet)."
+  type        = string
+  default     = "192.168.102.40"
+}
+
+variable "client_instance_type" {
+  description = "EC2 instance type for the traffic generator client."
+  type        = string
+  default     = "t3.micro"
+}

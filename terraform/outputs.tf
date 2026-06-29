@@ -77,3 +77,23 @@ output "vpc_flow_logs_s3_prefix" {
   description = "S3 key prefix where flow log objects are written."
   value       = var.enable_vpc_flow_logs ? "AWSLogs/${data.aws_caller_identity.current.account_id}/vpcflowlogs/${var.vpc_region}/" : null
 }
+
+output "traffic_generator_enabled" {
+  description = "Whether the traffic generator client is deployed."
+  value       = var.enable_traffic_generator
+}
+
+output "traffic_client_private_ip" {
+  description = "Private IP of the traffic generator client."
+  value       = var.enable_traffic_generator ? aws_instance.traffic_client[0].private_ip : null
+}
+
+output "ssh_client_via_web" {
+  description = "SSH to traffic generator via web tier jump host."
+  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -J ubuntu@${aws_instance.voting["voting-web"].public_ip} ubuntu@${aws_instance.traffic_client[0].private_ip}" : null
+}
+
+output "monitor_traffic_log" {
+  description = "Tail traffic generator log on the client VM."
+  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -J ubuntu@${aws_instance.voting["voting-web"].public_ip} ubuntu@${aws_instance.traffic_client[0].private_ip} 'sudo tail -f /var/log/voting_traffic_probe.log'" : null
+}
