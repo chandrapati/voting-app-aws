@@ -77,3 +77,15 @@ variable "allowed_ssh_cidr" {
   type        = string
   default     = ""
 }
+
+variable "enable_vpc_flow_logs" {
+  description = "Enable VPC Flow Logs delivered to an encrypted S3 bucket."
+  type        = bool
+  default     = true
+}
+
+variable "flow_logs_retention_days" {
+  description = "Days to retain VPC flow log objects in S3 before lifecycle expiration."
+  type        = number
+  default     = 30
+}

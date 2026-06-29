@@ -43,6 +43,8 @@ A working **"What's For Lunch?"** voting UI backed by a .NET API and SQL Server 
 | App (API) | `voting-app01` | Public IP | `t3.micro` |
 | DB (SQL) | `voting-db01` | Private IP only | `t3.small` |
 
+**VPC Flow Logs** (enabled by default) capture all accepted/rejected traffic for the VPC and deliver **hourly partitioned plain-text logs** to an **encrypted, private S3 bucket** with a 30-day lifecycle expiration.
+
 Application binaries are pulled at boot from [wajihalsaid/Voting_app](https://github.com/wajihalsaid/Voting_app).
 
 ---
@@ -204,6 +206,7 @@ Pricing below is **approximate** for **us-east-1 on-demand** (June 2026). Actual
 |------|----------|
 | EBS volumes (default ~8 GB × 3) | ~$2/month if instances run 24/7 |
 | Route53 private hosted zone | $0.50/month per zone |
+| VPC Flow Logs → S3 | ~$0.50/GB ingested + ~$0.023/GB-month storage (low for demo traffic) |
 | Data transfer (inbound) | Free |
 | Data transfer (outbound) | First 100 GB/month free, then per-GB rates |
 
@@ -353,6 +356,36 @@ terraform apply -auto-approve
 
 ---
 
+### 10. VPC Flow Logs / S3
+
+Flow logs are **on by default**. After deploy:
+
+```bash
+terraform output vpc_flow_logs_s3_bucket
+terraform output vpc_flow_logs_s3_prefix
+```
+
+List recent flow log objects (allow a few minutes after traffic starts):
+
+```bash
+BUCKET=$(terraform output -raw vpc_flow_logs_s3_bucket)
+aws s3 ls "s3://${BUCKET}/AWSLogs/" --recursive | tail -20
+```
+
+Disable flow logs (and skip creating the bucket) in `terraform.tfvars`:
+
+```hcl
+enable_vpc_flow_logs = false
+```
+
+Adjust retention (default 30 days):
+
+```hcl
+flow_logs_retention_days = 7
+```
+
+---
+
 ## Security notes for customer demos
 
 - HTTP is open to **your IP** (auto-detected) plus RFC1918 ranges for tier-to-tier traffic.
@@ -377,6 +410,7 @@ voting-app-aws/
     ├── ec2.tf
     ├── dns.tf
     ├── secrets.tf
+    ├── flow_logs.tf              # VPC Flow Logs → S3
     ├── variables.tf
     ├── outputs.tf
     ├── terraform.tfvars.example

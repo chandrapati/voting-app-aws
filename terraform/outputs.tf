@@ -62,3 +62,18 @@ output "ssh_db" {
 output "bootstrap_note" {
   value = "All 3 EC2 instances launch in parallel. SQL Server Docker is ready in ~3-5 min; full app stack ~8-12 min. Run ../scripts/test-voting-app.sh to verify."
 }
+
+output "vpc_flow_logs_enabled" {
+  description = "Whether VPC Flow Logs to S3 are enabled."
+  value       = var.enable_vpc_flow_logs
+}
+
+output "vpc_flow_logs_s3_bucket" {
+  description = "S3 bucket receiving VPC Flow Logs (plain-text, hourly partitions)."
+  value       = var.enable_vpc_flow_logs ? aws_s3_bucket.vpc_flow_logs[0].id : null
+}
+
+output "vpc_flow_logs_s3_prefix" {
+  description = "S3 key prefix where flow log objects are written."
+  value       = var.enable_vpc_flow_logs ? "AWSLogs/${data.aws_caller_identity.current.account_id}/vpcflowlogs/${var.vpc_region}/" : null
+}
