@@ -78,6 +78,21 @@ output "vpc_flow_logs_s3_prefix" {
   value       = var.enable_vpc_flow_logs ? "AWSLogs/${data.aws_caller_identity.current.account_id}/vpcflowlogs/${var.vpc_region}/" : null
 }
 
+output "csw_flow_log_bucket_name" {
+  description = "S3 bucket name for CSW AWS connector Flow Log Ingestion."
+  value       = var.enable_vpc_flow_logs ? aws_s3_bucket.vpc_flow_logs[0].id : null
+}
+
+output "verify_flow_logs_command" {
+  description = "Run flow log diagnostic from repo root."
+  value       = "bash scripts/verify-flow-logs.sh"
+}
+
+output "vpc_region" {
+  description = "AWS region of the voting-app VPC."
+  value       = var.vpc_region
+}
+
 output "traffic_generator_enabled" {
   description = "Whether the traffic generator client is deployed."
   value       = var.enable_traffic_generator

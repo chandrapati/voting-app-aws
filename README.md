@@ -429,10 +429,17 @@ Disable flow logs in `terraform.tfvars`:
 enable_vpc_flow_logs = false
 ```
 
-Adjust retention (default 30 days):
+Adjust retention (default **7** days):
 
 ```hcl
 flow_logs_retention_days = 7
+```
+
+Verify delivery and CSW-ready format:
+
+```bash
+bash scripts/verify-flow-logs.sh
+terraform output -raw csw_flow_log_bucket_name
 ```
 
 ---

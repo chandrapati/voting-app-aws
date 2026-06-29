@@ -10,6 +10,8 @@ resource "aws_s3_bucket" "vpc_flow_logs" {
   count  = var.enable_vpc_flow_logs ? 1 : 0
   bucket = "${var.project_name}-vpc-flow-logs-${data.aws_caller_identity.current.account_id}"
 
+  force_destroy = true
+
   tags = {
     Name    = "${var.project_name}-vpc-flow-logs"
     Project = var.project_name
