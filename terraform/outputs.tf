@@ -89,11 +89,11 @@ output "traffic_client_private_ip" {
 }
 
 output "ssh_client_via_web" {
-  description = "SSH to traffic generator via web tier jump host."
-  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -J ubuntu@${aws_instance.voting["voting-web"].public_ip} ubuntu@${aws_instance.traffic_client[0].private_ip}" : null
+  description = "SSH to traffic generator via web tier jump host (ProxyCommand)."
+  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -o ProxyCommand=\"ssh -i voting-app-key -W %h:%p ubuntu@${aws_instance.voting["voting-web"].public_ip}\" ubuntu@${aws_instance.traffic_client[0].private_ip}" : null
 }
 
 output "monitor_traffic_log" {
   description = "Tail traffic generator log on the client VM."
-  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -J ubuntu@${aws_instance.voting["voting-web"].public_ip} ubuntu@${aws_instance.traffic_client[0].private_ip} 'sudo tail -f /var/log/voting_traffic_probe.log'" : null
+  value       = var.enable_traffic_generator ? "ssh -i voting-app-key -o ProxyCommand=\"ssh -i voting-app-key -W %h:%p ubuntu@${aws_instance.voting["voting-web"].public_ip}\" ubuntu@${aws_instance.traffic_client[0].private_ip} 'sudo tail -f /var/log/voting_traffic_probe.log'" : null
 }

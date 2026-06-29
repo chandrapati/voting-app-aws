@@ -183,3 +183,27 @@ resource "aws_security_group_rule" "app_http_from_client" {
   security_group_id        = aws_security_group.dev_app_sg.id
   source_security_group_id = aws_security_group.dev_client_sg[0].id
 }
+
+resource "aws_security_group_rule" "client_ssh_from_web" {
+  count = var.enable_traffic_generator ? 1 : 0
+
+  type                     = "ingress"
+  description              = "SSH from web tier (jump host)"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.dev_client_sg[0].id
+  source_security_group_id = aws_security_group.dev_web_sg.id
+}
+
+resource "aws_security_group_rule" "client_ssh_from_app" {
+  count = var.enable_traffic_generator ? 1 : 0
+
+  type                     = "ingress"
+  description              = "SSH from app tier (jump host)"
+  from_port                = 22
+  to_port                  = 22
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.dev_client_sg[0].id
+  source_security_group_id = aws_security_group.dev_app_sg.id
+}

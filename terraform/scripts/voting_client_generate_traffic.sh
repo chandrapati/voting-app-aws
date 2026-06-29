@@ -63,7 +63,7 @@ run_web_pass() {
   log "[$SCHEME/web]   GET api/Votes -> $S"
 
   log "[$SCHEME/web] PUT api/Votes/${ITEM}"
-  S=$(curl "${CURL_OPTS[@]}" -X PUT "${BASE}/api/Votes/${ITEM}" 2>/dev/null || echo "000")
+  S=$(curl "${CURL_OPTS[@]}" -X PUT "${BASE}/api/Votes/${ITEM}" -F "item=${ITEM}" 2>/dev/null || echo "000")
   log "[$SCHEME/web]   PUT api/Votes/${ITEM} -> $S"
 
   S=$(curl "${CURL_OPTS[@]}" "${BASE}/api/Votes?c=$(date +%s)" 2>/dev/null || echo "000")
@@ -81,7 +81,7 @@ run_app_pass() {
   log "[http/app]   GET api/Votes -> $S"
 
   log "[http/app] PUT api/Votes/${ITEM}"
-  S=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${BASE}/api/Votes/${ITEM}" 2>/dev/null || echo "000")
+  S=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "${BASE}/api/Votes/${ITEM}" -F "item=${ITEM}" 2>/dev/null || echo "000")
   log "[http/app]   PUT api/Votes/${ITEM} -> $S"
 }
 
