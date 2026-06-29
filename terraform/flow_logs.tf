@@ -1,5 +1,11 @@
 data "aws_caller_identity" "current" {}
 
+# CSW AWS connector — required VPC flow log fields (plain-text, S3).
+# Ref: CSW AWS Connector Guide §3.2 / configure flow logs CLI example.
+locals {
+  csw_vpc_flow_log_format = "$${version} $${srcaddr} $${dstaddr} $${srcport} $${dstport} $${protocol} $${packets} $${bytes} $${start} $${end} $${action} $${tcp-flags} $${interface-id} $${log-status} $${flow-direction} $${pkt-srcaddr} $${pkt-dstaddr}"
+}
+
 resource "aws_s3_bucket" "vpc_flow_logs" {
   count  = var.enable_vpc_flow_logs ? 1 : 0
   bucket = "${var.project_name}-vpc-flow-logs-${data.aws_caller_identity.current.account_id}"
@@ -94,15 +100,19 @@ resource "aws_flow_log" "vpc" {
   count = var.enable_vpc_flow_logs ? 1 : 0
 
   vpc_id               = aws_vpc.dev_vpc.id
-  traffic_type         = "ALL"
+  traffic_type         = "ALL" # CSW requires ACCEPT and REJECT
   log_destination_type = "s3"
   log_destination      = aws_s3_bucket.vpc_flow_logs[0].arn
+
+  log_format = local.csw_vpc_flow_log_format
 
   destination_options {
     file_format                = "plain-text"
     hive_compatible_partitions = false
-    per_hour_partition         = true
+    per_hour_partition         = true # CSW supports hourly partitions
   }
+
+  max_aggregation_interval = 60
 
   tags = {
     Name    = "${var.project_name}-vpc-flow-log"

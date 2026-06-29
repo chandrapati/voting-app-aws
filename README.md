@@ -393,9 +393,13 @@ terraform apply -auto-approve
 
 ---
 
-### 10. VPC Flow Logs / S3
+### 10. VPC Flow Logs / S3 (CSW-compatible)
 
-Flow logs are **on by default**. After deploy:
+Flow logs are **on by default**, published to **S3** as **plain text** with a
+**CSW-required field set** (including `pkt-srcaddr` / `pkt-dstaddr` for NAT
+visibility). `traffic_type = ALL` captures both ACCEPT and REJECT.
+
+After deploy:
 
 ```bash
 terraform output vpc_flow_logs_s3_bucket
@@ -409,7 +413,17 @@ BUCKET=$(terraform output -raw vpc_flow_logs_s3_bucket)
 aws s3 ls "s3://${BUCKET}/AWSLogs/" --recursive | tail -20
 ```
 
-Disable flow logs (and skip creating the bucket) in `terraform.tfvars`:
+Verify the CSW field header in a log file:
+
+```bash
+KEY=$(aws s3 ls "s3://${BUCKET}/AWSLogs/" --recursive | tail -1 | awk '{print $4}')
+aws s3 cp "s3://${BUCKET}/${KEY}" - | gunzip -c | head -1
+# Expect header containing: version srcaddr dstaddr ... pkt-srcaddr pkt-dstaddr flow-direction log-status
+```
+
+Point the **CSW AWS connector** at this bucket for flow ingestion (S3 only, not CloudWatch).
+
+Disable flow logs in `terraform.tfvars`:
 
 ```hcl
 enable_vpc_flow_logs = false
