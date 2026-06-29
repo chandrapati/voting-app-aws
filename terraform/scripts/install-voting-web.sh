@@ -1,8 +1,21 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
+exec > /var/log/voting-web-install.log 2>&1
+
 hostnamectl set-hostname ${hostname}
+
+echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+
+apt_update_with_retry() {
+  local retries=10 pause=20
+  for i in $(seq 1 "$retries"); do
+    if apt-get update -y; then return 0; fi
+    sleep "$pause"
+  done
+  return 1
+}
 
 cd /tmp
 
@@ -26,14 +39,13 @@ dpkg -i liblttng-ust0_2.11.0-1_amd64.deb
 dpkg -i libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb
 
 add-apt-repository -y universe
+apt_update_with_retry
 apt-get -y install apt-transport-https
-apt-get -y update
 apt-get -y install apache2 dotnet-sdk-2.2 aspnetcore-runtime-2.2 unzip
 
 unzip -o -d /var/www/votingweb votingweb.zip
 chown -R www-data:www-data /var/www/votingweb
 
-# Point frontend at internal API hostname (Route53 private zone).
 if [ -f /var/www/votingweb/appsettings.json ]; then
   sed -i "s|http://localhost:5001|http://${app_host}|g" /var/www/votingweb/appsettings.json || true
   sed -i "s|https://localhost:5001|http://${app_host}|g" /var/www/votingweb/appsettings.json || true

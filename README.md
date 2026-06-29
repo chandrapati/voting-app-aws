@@ -304,17 +304,34 @@ Look for `voting-web bootstrap complete` in `/var/log/voting-web-bootstrap.log`.
 
 ---
 
-### 5. API tier issues
+### 5. API tier issues (`500`, `503`, `api/Votes` failures)
+
+**Full reference:** [docs/API-ERRORS.md](docs/API-ERRORS.md) — symptom table, bootstrap failure modes, and recovery steps.
+
+**Quick check from your laptop:**
+
+```bash
+./scripts/diagnose-voting-app.sh
+```
+
+**On the app host:**
 
 ```bash
 ssh -i voting-app-key ubuntu@$(terraform output -raw voting_app_public_ip)
 
 sudo tail -100 /var/log/cloud-init-output.log
 sudo systemctl status votingdata apache2
-grep -i connection /var/www/votingdata/appsettings.json
+grep -i Catalog /var/www/votingdata/appsettings.json   # expect votingapp
+sudo journalctl -u votingdata -n 30 --no-pager
 ```
 
-The app tier waits up to **15 minutes** for SQL Server on `voting-db01.ec2.internal:1433`.
+Common causes: SQL Server not running on db tier (Docker install failed on first boot), or wrong `Initial Catalog`. The app tier waits up to **15 minutes** for `voting-db01.ec2.internal:1433`. Recreate db + app after pulling latest install scripts:
+
+```bash
+terraform taint 'aws_instance.voting["voting-db"]'
+terraform taint 'aws_instance.voting["voting-app"]'
+terraform apply
+```
 
 ---
 
