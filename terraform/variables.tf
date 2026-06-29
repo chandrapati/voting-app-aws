@@ -87,7 +87,7 @@ variable "enable_vpc_flow_logs" {
 variable "flow_logs_retention_days" {
   description = "Days to retain VPC flow log objects in S3 before lifecycle expiration."
   type        = number
-  default     = 30
+  default     = 7
 }
 
 variable "enable_traffic_generator" {
